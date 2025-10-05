@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 jobs:
-  # Set release to prerelease first
+  # 设置为预发布
   prerelease:
     name: Set Prerelease
     runs-on: ubuntu-latest
@@ -20,19 +20,18 @@ jobs:
           id: ${{ github.event.release.id }}
           prerelease: true
 
-  # Main release job for all platforms
+  # 主构建任务
   release:
     needs: prerelease
     strategy:
       matrix:
         build-type: [ 'standard', 'lite' ]
-        target-platform: [ '', 'android', 'freebsd', 'linux_musl', 'linux_musl_arm' ]
-    name: Release ${{ matrix.target-platform && format('{0} ', matrix.target-platform) || '' }}${{ matrix.build-type == 'lite' && 'Lite' || '' }}
+        target-platform: [ 'linux_amd64', 'windows_amd64' ]
+    name: Release ${{ matrix.target-platform }} ${{ matrix.build-type == 'lite' && 'Lite' || 'Standard' }}
     runs-on: ubuntu-latest
-    steps:
 
+    steps:
       - name: Free Disk Space (Ubuntu)
-        if: matrix.target-platform == ''
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
@@ -54,12 +53,11 @@ jobs:
           fetch-depth: 0
 
       - name: Install dependencies
-        if: matrix.target-platform == ''
         run: |
           sudo snap install zig --classic --beta
           docker pull crazymax/xgo:latest
           go install github.com/crazy-max/xgo@latest
-          sudo apt install upx
+          sudo apt install -y upx
 
       - name: Build
         run: |
@@ -74,4 +72,3 @@ jobs:
           files: build/compress/*
           prerelease: false
           tag_name: ${{ github.event.release.tag_name }}
-
